@@ -26,6 +26,7 @@ class StoreColumnRequest extends FormRequest
         return [
             'title' => 'required|string|max:255',
             'board_id' => 'required|exists:boards,id',
+            'position' => 'sometimes|integer',
         ];
     }
 }
