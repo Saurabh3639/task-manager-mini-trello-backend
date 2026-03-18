@@ -1,7 +1,7 @@
 # Task Manager API (Mini Trello Backend)
 
 A production-style REST API for a Kanban based Task Management system inspired by Trello.
-The API allows users to manage boards, columns, and tasks with drag-and-drop style updates.
+The API allows users to manage boards, columns, and tasks with drag-and-drop style updates natively syncing to the frontend database.
 
 Built with **Laravel**, **JWT Authentication**, and **MySQL**.
 
@@ -9,18 +9,17 @@ Built with **Laravel**, **JWT Authentication**, and **MySQL**.
 
 # Tech Stack
 
-* **Framework:** Laravel
+* **Framework:** Laravel 9 (PHP ^8.0.2)
 * **Authentication:** JWT (`tymon/jwt-auth`)
 * **Database:** MySQL
-* **API Style:** RESTful
-* **Architecture:** MVC with clean API structure
+* **API Style:** RESTful JSON
+* **Architecture:** MVC with clean layer isolation (Controllers, Requests, Services, Resources)
 
 ---
 
 # Features
 
 ### Authentication
-
 * User Registration
 * User Login
 * Get Current User
@@ -28,537 +27,167 @@ Built with **Laravel**, **JWT Authentication**, and **MySQL**.
 * Refresh Token
 
 ### Boards
-
 * Create Board
 * Get All Boards for User
+* **Smart Aggregations:** Native `tasks_count` computed via Laravel Relational Aggregation mapping (`withCount`)
 * Update Board
 * Delete Board
 
 ### Columns
-
 * Create Column inside Board
 * Get Columns by Board
 * Update Column
 * Delete Column
 
 ### Tasks
-
 * Create Task
 * Get Tasks by Column
 * Update Task
 * Delete Task
+* Move Task natively
 
 ### Drag & Drop Support
-
-Tasks can be moved between columns by updating:
-
+Tasks can be moved between columns by patching the entity logic:
 * `column_id`
 * `position`
 
-Example:
-
-Todo → In Progress
+Example: `Todo → In Progress` maps the underlying foreign keys instantly.
 
 ---
 
 # Database Structure
 
 ## Users
-
 ```
-id
-name
-email
-password
-created_at
-updated_at
+id | name | email | password | created_at | updated_at
 ```
 
 ## Boards
-
 ```
-id
-user_id
-title
-created_at
-updated_at
+id | user_id | title | created_at | updated_at
 ```
 
 ## Columns
-
 ```
-id
-board_id
-title
-position
-created_at
-updated_at
+id | board_id | title | position | created_at | updated_at
 ```
 
 ## Tasks
+```
+id | board_id | column_id | title | description | priority | due_date | position | created_at | updated_at
+```
 
-```
-id
-board_id
-column_id
-title
-description
-priority
-due_date
-position
-created_at
-updated_at
-```
+*(Note: Data schemas follow Laravel's Eloquent naming conventions for simple scaling.)*
 
 ---
 
-# API Endpoints
+# API Endpoints (v1)
 
-## Authentication
+### Authentication
+* `POST` `/api/v1/register`
+* `POST` `/api/v1/login`
+* `GET` `/api/v1/me`
+* `POST` `/api/v1/logout`
 
-### Register
+### Boards
+* `POST` `/api/v1/boards`
+* `GET` `/api/v1/boards` (Returns Board properties integrated with `tasks_count`)
+* `PATCH` `/api/v1/boards/{id}`
+* `DELETE` `/api/v1/boards/{id}`
 
-POST `/api/register`
+### Columns
+* `POST` `/api/v1/columns`
+* `GET` `/api/v1/columns?board_id={id}`
+* `PATCH` `/api/v1/columns/{id}`
+* `DELETE` `/api/v1/columns/{id}`
 
-```
-{
-"name": "Saurabh",
-"email": "user@test.com",
-"password": "password"
-}
-```
+### Tasks
+* `POST` `/api/v1/tasks`
+* `GET` `/api/v1/tasks?column_id={id}`
+* `PATCH` `/api/v1/tasks/{id}` (Used for standard edits and drag-and-drop positional updates)
+* `DELETE` `/api/v1/tasks/{id}`
 
-### Login
-
-POST `/api/login`
-
-Returns JWT token.
-
-### Current User
-
-GET `/api/me`
-
-### Logout
-
-POST `/api/logout`
-
-### Refresh Token
-
-POST `/api/refresh`
+*(All Protected routes require the `Authorization: Bearer {JWT_TOKEN}` header component)*
 
 ---
 
-## Boards
-
-### Create Board
-
-POST `/api/boards`
-
-```
-{
-"title": "Project Board"
-}
-```
-
-### Get Boards
-
-GET `/api/boards`
-
-### Update Board
-
-PATCH `/api/boards/{id}`
-
-### Delete Board
-
-DELETE `/api/boards/{id}`
-
----
-
-## Columns
-
-### Create Column
-
-POST `/api/columns`
-
-```
-{
-"board_id": 1,
-"title": "Todo",
-"position": 1
-}
-```
-
-### Get Columns by Board
-
-GET `/api/columns?board_id=1`
-
-### Update Column
-
-PATCH `/api/columns/{id}`
-
-### Delete Column
-
-DELETE `/api/columns/{id}`
-
----
-
-## Tasks
-
-### Create Task
-
-POST `/api/tasks`
-
-```
-{
-"board_id": 1,
-"column_id": 1,
-"title": "Build Login API",
-"description": "Implement JWT authentication",
-"priority": "high",
-"position": 1
-}
-```
-
-### Get Tasks
-
-GET `/api/tasks?column_id=1`
-
-### Update Task
-
-PATCH `/api/tasks/{id}`
-
-Example for drag-drop move:
-
-```
-{
-"column_id": 2,
-"position": 1
-}
-```
-
-### Delete Task
-
-DELETE `/api/tasks/{id}`
-
----
-
-# Authentication
-
-All protected routes require:
-
-```
-Authorization: Bearer {JWT_TOKEN}
-```
-
-Example:
-
-```
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJh...
-```
-
----
-
-# Installation
+# Installation & Server Booting
 
 Clone repository
-
-```
-git clone https://github.com/your-username/task-manager-api.git
+```bash
+git clone <repository-url>
 ```
 
 Install dependencies
-
-```
+```bash
 composer install
 ```
 
 Copy environment file
-
-```
+```bash
 cp .env.example .env
 ```
 
 Generate application key
-
-```
+```bash
 php artisan key:generate
 ```
 
 Generate JWT secret
-
-```
+```bash
 php artisan jwt:secret
 ```
 
-Configure database in `.env`
-
+Configure local database properties in `.env`:
 ```
 DB_DATABASE=task_manager
 DB_USERNAME=root
 DB_PASSWORD=
 ```
 
-Run migrations
-
-```
+Run migrations (Build schemas)
+```bash
 php artisan migrate
 ```
 
-Start server
-
-```
+Start testing server
+```bash
 php artisan serve
 ```
-
-API will run at:
-
-```
-http://localhost:8000/api
-```
-
----
-
-# Example Project Structure
-
-```
-app
- ├ Http
- │   ├ Controllers
- │   ├ Middleware
- │
- ├ Models
- ├ Policies
- ├ Requests
- ├ Resources
- │
-database
- ├ migrations
-
-routes
- ├ api.php
-```
-
----
-
-# Recently Implemented Improvements (Production Grade Architecture)
-
-The following improvements have been completely integrated:
-
-* **API Resources** mapping domain models to concise, consistent JSON payloads structure.
-* **Form Request classes** extracted from Controllers to strictly handle Request Validation.
-* **Service classes** created specifically for complex database and business logic.
-* **Authorization Policies** implemented preventing users from mutating assets they do not own.
 
 ---
 
 # Architecture (Production-Level Structure)
 
-This project follows a **clean API architecture commonly used in production Laravel applications**.
-
-Instead of placing all logic inside controllers, responsibilities are separated into different layers.
+This project avoids "Fat Controllers" by heavily following **Clean API Architecture**.
 
 ```
 app
 ├ Http
-│ ├ Controllers        # Handle HTTP requests
-│ ├ Requests           # Validation classes
+│ ├ Controllers        # Entrypoints routing the HTTP requests
+│ ├ Requests           # Custom Form Requests handling explicit payload validation
 │ ├ Middleware
 │
-├ Models               # Database models
+├ Models               # Base Database eloquent mapping models
 │
-├ Services             # Business logic layer
+├ Services             # Complex business/database mutator layer
 │
 ├ Policies             # Authorization rules
 │
-├ Resources            # API response formatting
+├ Resources            # API Json Response formatters standardizing returned properties
 │
-├ Helpers              # Shared helper utilities
+├ Helpers              # Clean utility integrations
 ```
 
----
-
-# Controller Layer
-
-Controllers remain **thin** and only handle:
-
-* Request handling
-* Calling services
-* Returning responses
-
-Example responsibilities:
-
-```
-BoardController
-ColumnController
-TaskController
-AuthController
-```
-
----
-
-# Request Validation Layer
-
-All validation logic is moved into **Form Request classes** instead of controllers.
-
-Example:
-
-```
-StoreBoardRequest
-UpdateBoardRequest
-StoreTaskRequest
-UpdateTaskRequest
-```
-
-Benefits:
-
-* Cleaner controllers
-* Reusable validation
-* Better maintainability
-
----
-
-# Service Layer
-
-Business logic is handled inside **Service classes**.
-
-Example:
-
-```
-BoardService
-TaskService
-ColumnService
-```
-
-Services manage:
-
-* Database operations
-* Business rules
-* Complex logic
-
-Controllers simply call services.
-
-Example:
-
-```
-Controller → Service → Model
-```
-
----
-
-# API Resources
-
-API responses are formatted using **Laravel API Resource classes**.
-
-Example:
-
-```
-BoardResource
-ColumnResource
-TaskResource
-```
-
-Benefits:
-
-* Consistent API responses
-* Hide unnecessary fields
-* Easier API versioning
-
-Example response:
-
-```
-{
-  "id": 1,
-  "title": "Project Board",
-  "created_at": "2026-03-16"
-}
-```
-
----
-
-# Authorization Policies
-
-Authorization rules are defined using **Laravel Policies**.
-
-Example:
-
-```
-BoardPolicy
-TaskPolicy
-```
-
-This ensures:
-
-* Users can only modify their own boards
-* Unauthorized access is prevented
-
-Example rule:
-
-```
-User can update board only if board.user_id == user.id
-```
-
----
-
-# API Response Format
-
-All responses follow a **consistent JSON structure**.
-
-Example success response:
-
-```
-{
-  "success": true,
-  "message": "Task updated successfully",
-  "data": {}
-}
-```
-
-Example error response:
-
-```
-{
-  "success": false,
-  "message": "Unauthorized"
-}
-```
-
----
-
-# Performance Improvements
-
-The API includes several performance practices:
-
-* **Pagination** for large datasets
-* **Eager Loading** to prevent N+1 queries
-* Proper **database indexing through migrations**
-
-Example:
-
-```
-Board::with('columns.tasks')->get();
-```
-
----
-
-# API Versioning
-
-Routes are structured to allow versioning.
-
-Example:
-
-```
-/api/v1/boards
-/api/v1/tasks
-```
-
-This allows future API upgrades without breaking existing clients.
+## Key Layers Highlighted
+* **Controller Layer**: Extremely thin mapping connecting HTTP endpoints to Services.
+* **Form Request Validation**: Handled out-of-controller via Laravel FormRequests ensuring payload safety and reducing duplicate logic. 
+* **Service Layer**: Houses the isolated business logic rendering testing/mutations drastically safer than typical CRUD apps.
+* **API Resources**: Sanitizes responses. Maps timestamps clearly, removes underlying foreign keys if irrelevant, exposes relationship counts like `tasks_count` dynamically.
+* **Authorization Policies**: Protects endpoints at the model-level ensuring a user cannot mutate, patch, or drop a board/task they do not own.
 
 ---
 
 # Author
-
-Saurabh Phawade
-Full Stack Developer
-
-Tech Stack:
-React • Next.js • Laravel • Node.js • MySQL • MongoDB
+**Saurabh Phawade**
+(Full Stack Developer)
