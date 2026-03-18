@@ -21,7 +21,7 @@ class BoardController extends Controller
 
     public function index()
     {
-        $boards = Board::where('user_id', auth()->id())->paginate(10);
+        $boards = Board::where('user_id', auth()->id())->withCount('tasks')->paginate(10);
         return BoardResource::collection($boards);
     }
 
@@ -32,6 +32,7 @@ class BoardController extends Controller
             auth()->id()
         );
 
+        $board->loadCount('tasks');
         return new BoardResource($board);
     }
 
@@ -43,6 +44,7 @@ class BoardController extends Controller
 
         $board = $this->boardService->updateBoard($board, $request->validated());
 
+        $board->loadCount('tasks');
         return new BoardResource($board);
     }
 

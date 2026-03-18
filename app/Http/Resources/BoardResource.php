@@ -19,6 +19,7 @@ class BoardResource extends JsonResource
             'title' => $this->title,
             'user_id' => $this->user_id,
             'columns' => ColumnResource::collection($this->whenLoaded('columns')),
+            'tasks_count' => $this->tasks_count ?? 0,
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

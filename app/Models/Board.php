@@ -25,4 +25,9 @@ class Board extends Model
     {
         return $this->hasMany(Column::class);
     }
+
+    public function tasks()
+    {
+        return $this->hasMany(Task::class);
+    }
 }
